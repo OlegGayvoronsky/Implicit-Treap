@@ -1,44 +1,10 @@
 #include <iostream>
 #include <random>
-#include <sstream>
 #include <stack>
-#include <string>
 #include <vector>
 
-using std::cin;
-using std::cout;
-using std::ios_base;
-using std::mt19937;
-using std::ostringstream;
-using std::random_device;
-using std::stack;
-using std::string;
-using std::swap;
-using std::uniform_int_distribution;
-using std::vector;
-
-#define ASSERT_EQ(res, exp, func_name)             \
-    do {                                            \
-        if ((res) != (exp)) {                        \
-            std::cerr << "ASSERT FAILED:\n"           \
-                      << "In " << (func_name) << "\n"  \
-                      << "Expected: " << (exp) << "\n"  \
-                      << "Got: " << (res) << "\n"        \
-                      << "Line: " << __LINE__ << "\n";    \
-            std::exit(1);                                  \
-        }                                                   \
-    } while (0)
-
-
-constexpr int kLeft = -1e9;
-constexpr int kRight = 1e9;
-
-random_device rd;
-mt19937 gen(rd());
-uniform_int_distribution<int> dist(kLeft, kRight);
-
 template <typename T>
-class implicit_treap {
+class ImplicitTreap {
 private:
     struct Roots {
         int left;
@@ -67,9 +33,11 @@ private:
               reverse(false) {};
     };
 
-    vector<Node> tree_;
-    stack<int> unused_;
+    std::vector<Node> tree_;
+    std::stack<int> unused_;
     int root_;
+    std::mt19937 gen{std::random_device{}()};
+    std::uniform_int_distribution<int> dist{-1000000000, 1000000000};
 
     void LazyPush(int idx) {
         if (idx == -1) {
@@ -98,7 +66,7 @@ private:
         tree_[idx].reverse = false;
 
         if (reverse) {
-            swap(tree_[idx].left, tree_[idx].right);
+            std::swap(tree_[idx].left, tree_[idx].right);
         }
 
         int left_son = tree_[idx].left;
@@ -201,7 +169,7 @@ private:
             return;
         }
         Inorder(tree_[root].left);
-        cout << tree_[root].data;
+        std::cout << tree_[root].data;
         Inorder(tree_[root].right);
     }
 
@@ -215,7 +183,33 @@ private:
     }
 
 public:
-    implicit_treap() : root_(-1) {}
+    ImplicitTreap() : root_(-1) {}
+
+    ImplicitTreap(const ImplicitTreap& other) = default;
+
+    ImplicitTreap& operator=(const ImplicitTreap& other) = default;
+    
+    ImplicitTreap(std::initializer_list<T> init) : ImplicitTreap() {
+        int position = 0;
+        for (auto data : init) {
+            Insert(position++, data);
+        }
+    }
+
+    ImplicitTreap(ImplicitTreap&& other) noexcept : tree_(std::move(other.tree_)), root_(other.root_) {
+        other.root_ = -1;
+    }
+
+    ImplicitTreap& operator=(ImplicitTreap&& other) noexcept {
+        if (this == &other) {
+            return *this;
+        }
+
+        tree_ = std::move(other.tree_);
+        root_ = other.root_;
+        other.root_ = -1;
+        return *this;
+    }
 
     int Add(int left, int right, int value) {
         if (root_ == -1) {
@@ -287,7 +281,7 @@ public:
 
     class Iterator {
     private:
-        implicit_treap* treap_;
+        ImplicitTreap* treap_;
         int idx_;
 
         int LeftMost(int node) const {
@@ -325,7 +319,7 @@ public:
         using Pointer = T*;
         using Reference = T&;
 
-        Iterator(implicit_treap* treap, int idx) : treap_(treap), idx_(idx) {}
+        Iterator(ImplicitTreap* treap, int idx) : treap_(treap), idx_(idx) {}
 
         T& operator*() { return treap_->tree_[idx_].data; }
 
@@ -411,194 +405,11 @@ public:
     Iterator end() { return Iterator(this, -1); }
 };
 
-string ToString(implicit_treap<char>& t) {
-    string res;
-    for (char data : t) {
-        res.push_back(data);
+template <typename T>
+std::vector<T> ToVector(ImplicitTreap<T>& t) {
+    std::vector<T> res;
+    for (const T& x : t) {
+        res.push_back(x);
     }
     return res;
-}
-
-void TestInsert() {
-    implicit_treap<char> treap;
-    string str;
-
-    treap.Insert(0, 'g');
-    str.insert(0, 1, 'g');
-    treap.Insert(1, 'v');
-    str.insert(1, 1, 'v');
-    treap.Insert(1, 'q');
-    str.insert(1, 1, 'q');
-
-    ASSERT_EQ(ToString(treap), str, "TestInsert");
-}
-
-void TestDelete() {
-    implicit_treap<char> treap;
-    string str = "il";
-
-    for (int i = 0; i < (int)str.size(); ++i) {
-        treap.Insert(i, str[i]);
-    }
-
-    treap.Delete(0, 0);
-    str.erase(0, 1);
-
-    ASSERT_EQ(ToString(treap), str, "TestDelete");
-}
-
-void TestReverse() {
-    implicit_treap<char> treap;
-    string str = "abcdef";
-
-    for (int i = 0; i < (int)str.size(); ++i) {
-        treap.Insert(i, str[i]);
-    }
-
-    treap.Reverse(1, 4);
-    std::reverse(str.begin() + 1, str.begin() + 5);
-
-    ASSERT_EQ(ToString(treap), str, "TestReverse");
-}
-
-void TestCyclicShift() {
-    implicit_treap<char> treap;
-    string str = "abcdef";
-
-    for (int i = 0; i < (int)str.size(); ++i) {
-        treap.Insert(i, str[i]);
-    }
-
-    int left = 1;
-    int right = 4;
-    int k_shift = 2;
-
-    treap.CyclicShift(left, right, k_shift);
-
-    string tmp = str.substr(left, right - left + 1);
-    std::rotate(tmp.begin(), tmp.begin() + k_shift, tmp.end());
-    str.replace(left, right - left + 1, tmp);
-
-    ASSERT_EQ(ToString(treap), str, "TestCyclicShift");
-}
-
-void PrintProgress(int current, int total, const string& last_op) {
-    static const int bar_width = 40;
-    static size_t last_len = 0;
-
-    float progress = float(current) / total;
-    int filled = int(bar_width * progress);
-
-    std::ostringstream oss;
-    oss << "[";
-    for (int i = 0; i < bar_width; ++i) {
-        oss << (i < filled ? '#' : '-');
-    }
-    oss << "] "
-        << int(progress * 100) << "% "
-        << "(" << current << "/" << total << ") "
-        << last_op;
-
-    string line = oss.str();
-
-    cout << "\r" << line;
-
-    if (line.size() < last_len) {
-        cout << string(last_len - line.size(), ' ');
-    }
-
-    last_len = line.size();
-    cout << std::flush;
-}
-
-
-void StressTest() {
-    implicit_treap<char> treap;
-    string str;
-    mt19937 rng(123);
-    for (int step = 0; step < 10000; ++step) {
-        int op = rng() % 4;
-
-        string func_name;
-        if (op == 0 && !str.empty()) {
-            int left = rng() % str.size();
-            int right = rng() % str.size();
-            if (left > right) {
-                swap(left, right);
-            }
-            treap.Delete(left, right);
-            str.erase(left, right - left + 1);
-            func_name = "TestDelete";
-        }
-        else if (op == 1) {
-            int pos = rng() % (str.size() + 1);
-            char data = 'a' + rng() % 26;
-            treap.Insert(pos, data);
-            str.insert(pos, 1, data);
-            func_name = "TestInsert";
-        }
-        else if (op == 2 && !str.empty()) {
-            int left = rng() % str.size();
-            int right = rng() % str.size();
-            if (left > right) {
-                swap(left, right);
-            }
-            treap.Reverse(left, right);
-            std::reverse(str.begin() + left, str.begin() + right + 1);
-            func_name = "TestReverse";
-        }
-        else if (op == 3 && !str.empty()) {
-            int left = rng() % str.size();
-            int right = rng() % str.size();
-            if (left > right) {
-                swap(left, right);
-            }
-            int k_shift = rng() % (right - left + 1);
-            treap.CyclicShift(left, right, k_shift);
-
-            string tmp = str.substr(left, right - left + 1);
-            std::rotate(tmp.begin(), tmp.begin() + k_shift, tmp.end());
-            str.replace(left, right - left + 1, tmp);
-            func_name = "TestCyclicShift";
-        }
-        if (step % 50 == 0) {
-            PrintProgress(step, 10000, func_name);
-        }
-
-        ASSERT_EQ(ToString(treap), str, func_name);
-    }
-    PrintProgress(10000, 10000, "DONE");
-    cout << "\n";
-}
-
-void TestIterator() {
-    implicit_treap<char> treap;
-    string str = "hello_world";
-
-    for (int i = 0; i < (int)str.size(); ++i)
-        treap.Insert(i, str[i]);
-
-    auto it = treap.begin();
-    for (char c : str) {
-        ASSERT_EQ(*it, c, "TestIterator");
-        ++it;
-    }
-    ASSERT_EQ(it == treap.end(), true, "TestIterator");
-}
-
-int main() {
-    TestInsert();
-    cout << "Insert test is passed: 1/6\n";
-    TestDelete();
-    cout << "Delete test is passed: 2/6\n";
-    TestReverse();
-    cout << "Reverse test is passed: 3/6\n";
-    TestCyclicShift();
-    cout << "CyclicShift test is passed: 4/6\n";
-    TestIterator();
-    cout << "Iterator test is passed: 5/6\n";
-    StressTest();
-    cout << "Stress test is passed: 6/6\n";
-
-    cout << "ALL TESTS PASSED\n";
 }

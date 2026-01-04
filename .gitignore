@@ -1,9 +1,17 @@
-/implicit_treap.exe
-/implicit_treap.ilk
-/implicit_treap.obj
-/implicit_treap.pdb
-/main.exe
-/main.ilk
-/main.obj
-/main.pdb
-/vc140.pdb
+# ===== Build artifacts =====
+*.exe
+*.dll
+*.obj
+*.lib
+*.ilk
+*.pdb
+
+# ===== MSVC =====
+.vs/
+vc*.pdb
+
+# ===== Build folders =====
+build/
+
+# ===== VS Code =====
+.vscode/

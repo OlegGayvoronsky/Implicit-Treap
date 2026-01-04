@@ -9,11 +9,20 @@
                 "/Zi",
                 "/EHsc",
                 "/nologo",
-                "/Fe${fileDirname}\\${fileBasenameNoExtension}.exe",
-                "${file}"
+
+                "/Fo${workspaceFolder}/build/",
+                "/Fd${workspaceFolder}/build/",
+                "/Fe${workspaceFolder}/build/${fileBasenameNoExtension}.exe",
+
+                "${file}",
+
+                "/I${workspaceFolder}/include",
+                "/I\"C:/Libraries/vcpkg/installed/x64-windows/include\"",
+                "C:/Libraries/vcpkg/installed/x64-windows/lib/gtest.lib",
+                "C:/Libraries/vcpkg/installed/x64-windows/lib/manual-link/gtest_main.lib"
             ],
             "options": {
-                "cwd": "${fileDirname}"
+                "cwd": "${workspaceFolder}"
             },
             "problemMatcher": [
                 "$msCompile"
